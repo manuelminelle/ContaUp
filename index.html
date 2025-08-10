@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+  <title>Dashboard Conta Contanti – Ufficio Postale</title>
+  <meta name="description" content="Dashboard veloce per la conta dei contanti a fine giornata (banconote in euro)." />
+  <style>
+    :root{
+      --bg:#0a0f1e; --panel:#0f1630cc; --stroke:#28406b; --text:#e6eeff; --muted:#a7b3d9; --accent:#7dd3fc; --accent2:#ffd166;
+    }
+    /* ===== Global + iPhone tweaks ===== */
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{ margin:0; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; color:var(--text); background:var(--bg); -webkit-text-size-adjust:100%; -webkit-tap-highlight-color:transparent; }
+    .container{ max-width:1080px; margin:48px auto; padding:0 12px calc(150px + env(safe-area-inset-bottom)); }
+
+    .headerbar{ display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:10px; margin-bottom:14px; }
+    h1{ margin:0; font-size:24px; letter-spacing:.3px }
+    .brandchip{ display:flex; align-items:center; gap:8px; background:linear-gradient(135deg, rgba(125,211,252,.12), rgba(255,209,102,.12)); border:1px solid var(--stroke); color:var(--accent2); padding:8px 12px; border-radius:14px; font-size:14px; }
+
+    .card{ background:var(--panel); border:1px solid var(--stroke); border-radius:14px; padding:14px; backdrop-filter: blur(8px); }
+
+    .grid.header, #rows{ display:grid; grid-template-columns: 200px 1fr 180px; gap:10px; align-items:center; }
+    .grid.header{ color:var(--muted); text-transform:uppercase; font-size:11px; letter-spacing:1px; margin:6px 0 8px; }
+
+    /* Denomination cell */
+    .denom{ position:relative; height:60px; display:flex; align-items:center; justify-content:center; border:1px solid var(--stroke); border-radius:10px; background: linear-gradient(135deg, rgba(125,211,252,.18), rgba(255,209,102,.18)); font-weight:900; font-size:18px; }
+
+    /* Quantity controls */
+    .qtywrap{ display:grid; grid-template-columns: 44px 1fr 44px; gap:8px; align-items:center; }
+    .key{ border:1px solid var(--stroke); background:#0e1533; color:#fff; border-radius:10px; font-weight:900; height:44px; cursor:pointer; touch-action:manipulation; }
+    .key:active{ transform:translateY(1px) }
+    input[type="number"]{ width:100%; height:44px; text-align:center; border-radius:10px; border:1px solid var(--stroke); background:#0e1533; color:#fff; font-weight:900; font-size:18px; outline:none; }
+    input[type="number"]:focus{ box-shadow:0 0 0 3px rgba(125,211,252,.25); border-color:var(--accent) }
+
+    .subtotal{ text-align:right; font-weight:900; font-size:18px; font-variant-numeric: tabular-nums; }
+
+    /* Save panel */
+    #storagePanel{ margin-top:12px; background:var(--panel); border:1px solid var(--stroke); border-radius:12px; padding:12px; }
+    .rowflex{ display:flex; flex-wrap:wrap; gap:10px; align-items:center; }
+    .btnpill{ display:inline-flex; align-items:center; gap:6px; padding:10px 12px; border-radius:10px; border:1px solid var(--stroke); background:linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.03)); color:var(--text); font-weight:800; cursor:pointer; touch-action:manipulation; }
+    .btnpill:active{ transform:scale(.98) }
+    #historySelect{ min-height:44px; background:#0e1533; color:#fff; border:1px solid var(--stroke); border-radius:10px; padding:8px 10px; flex:1; }
+
+    /* Footer total (safe-area aware) */
+    .footer{ position:fixed; left:0; right:0; bottom:0; background:#1b2442; border-top:1px solid var(--stroke); padding:12px calc(12px + env(safe-area-inset-right)) calc(12px + env(safe-area-inset-bottom)) calc(12px + env(safe-area-inset-left)); }
+    .foot-inner{ max-width:1080px; margin:0 auto; display:flex; justify-content:space-between; align-items:center; gap:12px; }
+    .total{ font-size:22px; font-weight:900; font-variant-numeric: tabular-nums; }
+
+    /* Mobile */
+    @media (max-width: 430px){
+      .brandchip{ display:none }
+      .grid.header, #rows{ grid-template-columns: 1fr; }
+      .subtotal{ text-align:left }
+      .qtywrap{ grid-template-columns: 1fr 1fr 1fr }
+      .denom{ height:56px; font-size:20px }
+      .total{ font-size:20px }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="headerbar">
+      <div>
+        <h1>Dashboard Conta Contanti</h1>
+        <div style="color:var(--muted); font-size:12px">Interfaccia ottimizzata per iPhone • Salvataggi locali</div>
+      </div>
+      <div class="brandchip"><span style="width:10px;height:10px;border-radius:999px;background:radial-gradient(circle at 30% 30%, #fff, var(--accent)); display:inline-block; box-shadow:0 0 12px var(--accent)"></span>POSTE-DASH v1.4</div>
+    </div>
+
+    <div class="card" role="region" aria-label="Tabella banconote">
+      <div class="grid header" aria-hidden="true">
+        <div>Taglio</div>
+        <div>Quantità</div>
+        <div>Subtotale</div>
+      </div>
+      <div id="rows"></div>
+    </div>
+
+    <!-- Pannello salvataggi -->
+    <div id="storagePanel">
+      <div class="rowflex" style="margin-bottom:10px;">
+        <button id="saveDay" class="btnpill" title="Salva i dati correnti della giornata">💾 Salva giornata</button>
+        <span style="color:var(--muted); font-size:12px">Salvato in <strong>locale</strong> su questo dispositivo (localStorage).</span>
+      </div>
+      <div class="rowflex">
+        <select id="historySelect">
+          <option value="">— Nessun salvataggio disponibile —</option>
+        </select>
+        <button id="loadDay" class="btnpill" title="Carica il salvataggio selezionato">⤴️ Carica</button>
+        <button id="deleteDay" class="btnpill" title="Elimina il salvataggio selezionato">🗑️ Elimina</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">
+    <div class="foot-inner">
+      <div style="color:var(--muted); font-size:12px">Totale giornata</div>
+      <div class="total" id="grandTotal">€ 0,00</div>
+    </div>
+  </div>
+
+  <script>
+    // ===== Config =====
+    const DENOMINATIONS = [5, 10, 20, 50, 100, 200, 500];
+    const fmt = new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR' });
+
+    // State
+    const rowsEl = document.getElementById('rows');
+    const grandEl = document.getElementById('grandTotal');
+    const state = new Map(DENOMINATIONS.map(v => [v, 0]));
+
+    // Build rows
+    DENOMINATIONS.forEach(makeRow);
+    renderTotal();
+
+    function makeRow(value){
+      // left: denom cell
+      const denom = document.createElement('div');
+      denom.className = 'denom';
+      denom.textContent = `€ ${value}`;
+
+      // middle: qty controls
+      const qtyWrap = document.createElement('div'); qtyWrap.className = 'qtywrap';
+      const minus = document.createElement('button'); minus.className = 'key'; minus.type='button'; minus.textContent = '−'; minus.setAttribute('aria-label', `Diminuisci quantità €${value}`);
+      const input = document.createElement('input'); input.type='number'; input.min='0'; input.value='0'; input.inputMode='numeric'; input.pattern='[0-9]*'; input.setAttribute('enterkeyhint','done'); input.setAttribute('aria-label', `Quantità per €${value}`);
+      const plus  = document.createElement('button'); plus.className = 'key'; plus.type='button'; plus.textContent = '+'; plus.setAttribute('aria-label', `Aumenta quantità €${value}`);
+      qtyWrap.append(minus, input, plus);
+
+      // right: subtotal
+      const subtotal = document.createElement('div'); subtotal.className='subtotal'; subtotal.textContent = fmt.format(0);
+
+      rowsEl.append(denom, qtyWrap, subtotal);
+
+      function clamp(v){ v = Number(v); if(!Number.isFinite(v) || v < 0) return 0; return Math.floor(v); }
+      function update(v){ const qty = clamp(v); input.value = String(qty); state.set(value, qty); subtotal.textContent = fmt.format(qty * value); renderTotal(); }
+
+      input.addEventListener('input', (e)=> update(e.target.value));
+      minus.addEventListener('click', ()=> update(Number(input.value)-1));
+      plus .addEventListener('click', ()=> update(Number(input.value)+1));
+      input.addEventListener('keydown', (e)=>{ if(e.key==='ArrowUp' || e.key==='+'){ e.preventDefault(); update(Number(input.value)+1); } if(e.key==='ArrowDown' || e.key==='-'){ e.preventDefault(); update(Number(input.value)-1); } });
+    }
+
+    function renderTotal(){ let total = 0; state.forEach((qty,val)=> total += qty * val); grandEl.textContent = fmt.format(total); }
+
+    // ===== Persistenza locale =====
+    const STORAGE_KEY = 'posteDash.days.v1';
+    const saveBtn = document.getElementById('saveDay');
+    const loadBtn = document.getElementById('loadDay');
+    const delBtn  = document.getElementById('deleteDay');
+    const selectEl= document.getElementById('historySelect');
+
+    saveBtn.addEventListener('click', saveDay);
+    loadBtn.addEventListener('click', loadSelected);
+    delBtn .addEventListener('click', deleteSelected);
+    renderHistorySelect();
+
+    function readHistory(){ try{ return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; }catch(e){ return []; } }
+    function writeHistory(list){ localStorage.setItem(STORAGE_KEY, JSON.stringify(list)); }
+
+    function renderHistorySelect(){ const list = readHistory(); selectEl.innerHTML = ''; if(list.length===0){ const opt=document.createElement('option'); opt.value=''; opt.textContent='— Nessun salvataggio disponibile —'; selectEl.appendChild(opt); return; } list.sort((a,b)=> b.ts - a.ts); for(const item of list){ const opt=document.createElement('option'); const when = new Date(item.ts); const label = `${when.toLocaleDateString('it-IT')} ${when.toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'})} • ${fmt.format(item.total)}${item.label? ' • '+item.label:''}`; opt.value=item.id; opt.textContent=label; selectEl.appendChild(opt); } }
+
+    function currentSnapshot(){ const data={}; DENOMINATIONS.forEach(v=> data[v]= state.get(v)||0 ); let total=0; Object.entries(data).forEach(([val,qty])=> total += Number(val)*Number(qty)); return {data,total}; }
+
+    function saveDay(){ const {data,total}= currentSnapshot(); const label = prompt('Nome opzionale per questa giornata (es. Cassa Rossi):',''); const item = { id: (crypto.randomUUID? crypto.randomUUID(): String(Date.now())), ts: Date.now(), label:(label||'').trim(), total, data }; const list=readHistory(); list.push(item); writeHistory(list); renderHistorySelect(); alert('Giornata salvata: '+ fmt.format(total)); }
+
+    function loadSelected(){ const id = selectEl && selectEl.value; if(!id) return; const item = readHistory().find(x=> x.id===id); if(!item) return; DENOMINATIONS.forEach(v=> state.set(v, item.data[v]||0)); // aggiorna UI
+      const inputs = rowsEl.querySelectorAll('input[type="number"]'); inputs.forEach((inp, idx)=>{ const denom = DENOMINATIONS[idx]; inp.value = item.data[denom] ?? 0; });
+      const subs = rowsEl.querySelectorAll('.subtotal'); subs.forEach((s, idx)=>{ const denom = DENOMINATIONS[idx]; s.textContent = fmt.format((item.data[denom]||0) * denom); }); renderTotal(); }
+
+    function deleteSelected(){ const id = selectEl && selectEl.value; if(!id) return; const list = readHistory().filter(x=> x.id!==id); writeHistory(list); renderHistorySelect(); }
+  </script>
+</body>
+</html>
