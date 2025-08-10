@@ -2,60 +2,71 @@
 <html lang="it">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+  <!-- Consenti zoom ma progettiamo per NON averne bisogno -->
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=yes" />
   <title>Dashboard Conta Contanti – Ufficio Postale</title>
   <meta name="description" content="Dashboard veloce per la conta dei contanti a fine giornata (banconote in euro)." />
   <style>
     :root{
       --bg:#0a0f1e; --panel:#0f1630cc; --stroke:#28406b; --text:#e6eeff; --muted:#a7b3d9; --accent:#7dd3fc; --accent2:#ffd166;
     }
-    /* ===== Global + iPhone tweaks ===== */
     *{box-sizing:border-box}
     html,body{height:100%}
     body{ margin:0; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; color:var(--text); background:var(--bg); -webkit-text-size-adjust:100%; -webkit-tap-highlight-color:transparent; }
-    .container{ max-width:1080px; margin:48px auto; padding:0 12px calc(150px + env(safe-area-inset-bottom)); }
 
+    /* Layout */
+    .container{ max-width:1080px; margin:48px auto; padding:0 12px calc(190px + env(safe-area-inset-bottom)); }
     .headerbar{ display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:10px; margin-bottom:14px; }
     h1{ margin:0; font-size:24px; letter-spacing:.3px }
     .brandchip{ display:flex; align-items:center; gap:8px; background:linear-gradient(135deg, rgba(125,211,252,.12), rgba(255,209,102,.12)); border:1px solid var(--stroke); color:var(--accent2); padding:8px 12px; border-radius:14px; font-size:14px; }
 
     .card{ background:var(--panel); border:1px solid var(--stroke); border-radius:14px; padding:14px; backdrop-filter: blur(8px); }
 
-    .grid.header, #rows{ display:grid; grid-template-columns: 200px 1fr 180px; gap:10px; align-items:center; }
-    .grid.header{ color:var(--muted); text-transform:uppercase; font-size:11px; letter-spacing:1px; margin:6px 0 8px; }
+    /* Grid desktop */
+    .grid.header{ display:grid; grid-template-columns: 220px 1fr 200px; gap:12px; align-items:center; color:var(--muted); text-transform:uppercase; font-size:11px; letter-spacing:1px; margin:6px 0 8px; }
+    #rows{ display:grid; grid-template-columns: 220px 1fr 200px; gap:12px; }
+
+    /* Row wrapper: contents on desktop, card su mobile */
+    .row{ display: contents; }
 
     /* Denomination cell */
-    .denom{ position:relative; height:60px; display:flex; align-items:center; justify-content:center; border:1px solid var(--stroke); border-radius:10px; background: linear-gradient(135deg, rgba(125,211,252,.18), rgba(255,209,102,.18)); font-weight:900; font-size:18px; }
+    .denom{ position:relative; height:64px; display:flex; align-items:center; justify-content:center; border:1px solid var(--stroke); border-radius:12px; background:linear-gradient(135deg, rgba(125,211,252,.18), rgba(255,209,102,.18)); font-weight:900; font-size:20px; }
 
     /* Quantity controls */
-    .qtywrap{ display:grid; grid-template-columns: 44px 1fr 44px; gap:8px; align-items:center; }
-    .key{ border:1px solid var(--stroke); background:#0e1533; color:#fff; border-radius:10px; font-weight:900; height:44px; cursor:pointer; touch-action:manipulation; }
+    .qtywrap{ display:grid; grid-template-columns: 56px 1fr 56px; gap:10px; align-items:center; }
+    .key{ border:1px solid var(--stroke); background:#0e1533; color:#fff; border-radius:12px; font-weight:900; height:56px; font-size:22px; cursor:pointer; touch-action:manipulation; }
     .key:active{ transform:translateY(1px) }
-    input[type="number"]{ width:100%; height:44px; text-align:center; border-radius:10px; border:1px solid var(--stroke); background:#0e1533; color:#fff; font-weight:900; font-size:18px; outline:none; }
+    input[type="number"]{ width:100%; height:56px; text-align:center; border-radius:12px; border:1px solid var(--stroke); background:#0e1533; color:#fff; font-weight:900; font-size:22px; outline:none; font-variant-numeric: tabular-nums; }
     input[type="number"]:focus{ box-shadow:0 0 0 3px rgba(125,211,252,.25); border-color:var(--accent) }
 
-    .subtotal{ text-align:right; font-weight:900; font-size:18px; font-variant-numeric: tabular-nums; }
+    .subtotal{ text-align:right; font-weight:900; font-size:20px; font-variant-numeric: tabular-nums; display:flex; align-items:center; justify-content:flex-end; padding-right:6px; }
 
     /* Save panel */
     #storagePanel{ margin-top:12px; background:var(--panel); border:1px solid var(--stroke); border-radius:12px; padding:12px; }
     .rowflex{ display:flex; flex-wrap:wrap; gap:10px; align-items:center; }
-    .btnpill{ display:inline-flex; align-items:center; gap:6px; padding:10px 12px; border-radius:10px; border:1px solid var(--stroke); background:linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.03)); color:var(--text); font-weight:800; cursor:pointer; touch-action:manipulation; }
+    .btnpill{ display:inline-flex; align-items:center; gap:6px; padding:12px 14px; border-radius:12px; border:1px solid var(--stroke); background:linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.03)); color:var(--text); font-weight:800; cursor:pointer; touch-action:manipulation; min-height:48px; font-size:16px; }
     .btnpill:active{ transform:scale(.98) }
-    #historySelect{ min-height:44px; background:#0e1533; color:#fff; border:1px solid var(--stroke); border-radius:10px; padding:8px 10px; flex:1; }
+    #historySelect{ min-height:48px; background:#0e1533; color:#fff; border:1px solid var(--stroke); border-radius:12px; padding:10px 12px; flex:1; font-size:16px; }
 
-    /* Footer total (safe-area aware) */
-    .footer{ position:fixed; left:0; right:0; bottom:0; background:#1b2442; border-top:1px solid var(--stroke); padding:12px calc(12px + env(safe-area-inset-right)) calc(12px + env(safe-area-inset-bottom)) calc(12px + env(safe-area-inset-left)); }
+    /* Footer total (sempre visibile, safe-area aware) */
+    .footer{ position:fixed; left:0; right:0; bottom:0; background:#1b2442; border-top:1px solid var(--stroke); padding:14px calc(14px + env(safe-area-inset-right)) calc(14px + env(safe-area-inset-bottom)) calc(14px + env(safe-area-inset-left)); }
     .foot-inner{ max-width:1080px; margin:0 auto; display:flex; justify-content:space-between; align-items:center; gap:12px; }
-    .total{ font-size:22px; font-weight:900; font-variant-numeric: tabular-nums; }
+    .total{ font-size:24px; font-weight:900; font-variant-numeric: tabular-nums; }
 
-    /* Mobile */
-    @media (max-width: 430px){
+    /* ===== Mobile redesign per iPhone 16 Pro ===== */
+    @media (max-width: 520px){
       .brandchip{ display:none }
-      .grid.header, #rows{ grid-template-columns: 1fr; }
-      .subtotal{ text-align:left }
-      .qtywrap{ grid-template-columns: 1fr 1fr 1fr }
-      .denom{ height:56px; font-size:20px }
-      .total{ font-size:20px }
+      .grid.header{ display:none } /* togli intestazione per guadagnare spazio */
+      #rows{ grid-template-columns: 1fr; gap:14px; }
+      .row{ display:grid; grid-template-columns: 1fr; gap:8px; padding:12px; border:1px solid var(--stroke); border-radius:14px; background:linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.02)); }
+      .denom{ height:52px; font-size:22px; border-radius:10px; }
+      .qtywrap{ grid-template-columns: 1fr; gap:8px; }
+      .key{ height:56px; font-size:22px; }
+      input[type="number"]{ height:60px; font-size:24px; }
+      .subtotal{ justify-content: space-between; padding:0 6px; }
+      .subtotal::before{ content:"Subtotale"; color:var(--muted); font-size:13px; font-weight:700; }
+      .total{ font-size:22px }
+      .container{ padding:0 12px calc(210px + env(safe-area-inset-bottom)); }
     }
   </style>
 </head>
@@ -64,9 +75,9 @@
     <div class="headerbar">
       <div>
         <h1>Dashboard Conta Contanti</h1>
-        <div style="color:var(--muted); font-size:12px">Interfaccia ottimizzata per iPhone • Salvataggi locali</div>
+        <div style="color:var(--muted); font-size:12px">Ridisegnata per iPhone: input grandi, pulsanti ampi, totale sempre visibile</div>
       </div>
-      <div class="brandchip"><span style="width:10px;height:10px;border-radius:999px;background:radial-gradient(circle at 30% 30%, #fff, var(--accent)); display:inline-block; box-shadow:0 0 12px var(--accent)"></span>POSTE-DASH v1.4</div>
+      <div class="brandchip"><span style="width:10px;height:10px;border-radius:999px;background:radial-gradient(circle at 30% 30%, #fff, var(--accent)); display:inline-block; box-shadow:0 0 12px var(--accent)"></span>POSTE-DASH v1.5</div>
     </div>
 
     <div class="card" role="region" aria-label="Tabella banconote">
@@ -116,12 +127,15 @@
     renderTotal();
 
     function makeRow(value){
-      // left: denom cell
+      // wrapper riga
+      const row = document.createElement('div'); row.className = 'row';
+
+      // left: denom
       const denom = document.createElement('div');
       denom.className = 'denom';
       denom.textContent = `€ ${value}`;
 
-      // middle: qty controls
+      // middle: qty controls (stack su iPhone)
       const qtyWrap = document.createElement('div'); qtyWrap.className = 'qtywrap';
       const minus = document.createElement('button'); minus.className = 'key'; minus.type='button'; minus.textContent = '−'; minus.setAttribute('aria-label', `Diminuisci quantità €${value}`);
       const input = document.createElement('input'); input.type='number'; input.min='0'; input.value='0'; input.inputMode='numeric'; input.pattern='[0-9]*'; input.setAttribute('enterkeyhint','done'); input.setAttribute('aria-label', `Quantità per €${value}`);
@@ -131,7 +145,9 @@
       // right: subtotal
       const subtotal = document.createElement('div'); subtotal.className='subtotal'; subtotal.textContent = fmt.format(0);
 
-      rowsEl.append(denom, qtyWrap, subtotal);
+      // Su desktop, .row è display: contents e questi tre vanno in griglia; su mobile, .row diventa card
+      row.append(denom, qtyWrap, subtotal);
+      rowsEl.append(row);
 
       function clamp(v){ v = Number(v); if(!Number.isFinite(v) || v < 0) return 0; return Math.floor(v); }
       function update(v){ const qty = clamp(v); input.value = String(qty); state.set(value, qty); subtotal.textContent = fmt.format(qty * value); renderTotal(); }
@@ -166,8 +182,17 @@
     function saveDay(){ const {data,total}= currentSnapshot(); const label = prompt('Nome opzionale per questa giornata (es. Cassa Rossi):',''); const item = { id: (crypto.randomUUID? crypto.randomUUID(): String(Date.now())), ts: Date.now(), label:(label||'').trim(), total, data }; const list=readHistory(); list.push(item); writeHistory(list); renderHistorySelect(); alert('Giornata salvata: '+ fmt.format(total)); }
 
     function loadSelected(){ const id = selectEl && selectEl.value; if(!id) return; const item = readHistory().find(x=> x.id===id); if(!item) return; DENOMINATIONS.forEach(v=> state.set(v, item.data[v]||0)); // aggiorna UI
-      const inputs = rowsEl.querySelectorAll('input[type="number"]'); inputs.forEach((inp, idx)=>{ const denom = DENOMINATIONS[idx]; inp.value = item.data[denom] ?? 0; });
-      const subs = rowsEl.querySelectorAll('.subtotal'); subs.forEach((s, idx)=>{ const denom = DENOMINATIONS[idx]; s.textContent = fmt.format((item.data[denom]||0) * denom); }); renderTotal(); }
+      const rows = Array.from(document.querySelectorAll('#rows .row'));
+      // aggiorna inputs e subtotali rispettando il nuovo markup
+      rows.forEach((row, idx)=>{
+        const denom = DENOMINATIONS[idx];
+        const qty = item.data[denom] ?? 0;
+        const input = row.querySelector('input[type="number"]');
+        const sub = row.querySelector('.subtotal');
+        if(input) input.value = qty;
+        if(sub) sub.textContent = fmt.format(qty * denom);
+      });
+      renderTotal(); }
 
     function deleteSelected(){ const id = selectEl && selectEl.value; if(!id) return; const list = readHistory().filter(x=> x.id!==id); writeHistory(list); renderHistorySelect(); }
   </script>
